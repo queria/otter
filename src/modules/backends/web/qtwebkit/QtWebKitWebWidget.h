@@ -1,6 +1,6 @@
 /**************************************************************************
 * Otter Browser: Web browser controlled by the user, not vice-versa.
-* Copyright (C) 2013 - 2014 Michal Dutkiewicz aka Emdek <michal@emdek.pl>
+* Copyright (C) 2013 - 2015 Michal Dutkiewicz aka Emdek <michal@emdek.pl>
 * Copyright (C) 2015 Piotr Wójcik <chocimier@tlen.pl>
 *
 * This program is free software: you can redistribute it and/or modify
@@ -58,6 +58,7 @@ public:
 	QPixmap getThumbnail();
 	QRect getProgressBarGeometry() const;
 	WindowHistoryInformation getHistory() const;
+	QVector<int> getContentBlockingProfiles();
 	QHash<QByteArray, QByteArray> getHeaders() const;
 	QVariantHash getStatistics() const;
 	int getZoom() const;
@@ -165,6 +166,7 @@ private:
 	QWebHitTestResult m_hitResult;
 	QUrl m_formRequestUrl;
 	QByteArray m_formRequestBody;
+	QVector<int> m_contentBlockingProfiles;
 	QHash<int, Action*> m_actions;
 	QNetworkAccessManager::Operation m_formRequestOperation;
 	ScrollMode m_scrollMode;

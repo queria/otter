@@ -1,6 +1,6 @@
 /**************************************************************************
 * Otter Browser: Web browser controlled by the user, not vice-versa.
-* Copyright (C) 2013 - 2014 Michal Dutkiewicz aka Emdek <michal@emdek.pl>
+* Copyright (C) 2013 - 2015 Michal Dutkiewicz aka Emdek <michal@emdek.pl>
 * Copyright (C) 2015 Piotr Wójcik <chocimier@tlen.pl>
 * Copyright (C) 2015 Jan Bajer aka bajasoft <jbajer@gmail.com>
 *
@@ -29,6 +29,7 @@
 #include "../../../../core/BookmarksManager.h"
 #include "../../../../core/Console.h"
 #include "../../../../core/CookieJar.h"
+#include "../../../../core/ContentBlockingManager.h"
 #include "../../../../core/GesturesManager.h"
 #include "../../../../core/HistoryManager.h"
 #include "../../../../core/InputInterpreter.h"
@@ -901,7 +902,9 @@ void QtWebKitWebWidget::updateOptions(const QUrl &url)
 		setStatusMessage(QString());
 	}
 
-	m_page->updatePageStyleSheets(url);
+	m_contentBlockingProfiles = ContentBlockingManager::getProfileList(getOption(QLatin1String("Content/BlockingProfiles"), url).toStringList());
+
+	m_page->updateStyleSheets(url);
 
 	m_networkManager->updateOptions(url);
 
@@ -2082,16 +2085,6 @@ QString QtWebKitWebWidget::getSelectedText() const
 	return m_webView->selectedText();
 }
 
-QHash<QByteArray, QByteArray> QtWebKitWebWidget::getHeaders() const
-{
-	return m_networkManager->getHeaders();
-}
-
-QVariantHash QtWebKitWebWidget::getStatistics() const
-{
-	return m_networkManager->getStatistics();
-}
-
 QUrl QtWebKitWebWidget::getUrl() const
 {
 	const QUrl url = m_webView->url();
@@ -2241,6 +2234,21 @@ WindowHistoryInformation QtWebKitWebWidget::getHistory() const
 int QtWebKitWebWidget::getZoom() const
 {
 	return (m_webView->zoomFactor() * 100);
+}
+
+QVector<int> QtWebKitWebWidget::getContentBlockingProfiles()
+{
+	return m_contentBlockingProfiles;
+}
+
+QHash<QByteArray, QByteArray> QtWebKitWebWidget::getHeaders() const
+{
+	return m_networkManager->getHeaders();
+}
+
+QVariantHash QtWebKitWebWidget::getStatistics() const
+{
+	return m_networkManager->getStatistics();
 }
 
 bool QtWebKitWebWidget::canLoadPlugins() const

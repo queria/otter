@@ -2,7 +2,8 @@
 * Otter Browser: Web browser controlled by the user, not vice-versa.
 * Copyright (C) 2010-2014 David Rosca <nowrep@gmail.com>
 * Copyright (C) 2014 Jan Bajer aka bajasoft <jbajer@gmail.com>
-*
+* Copyright (C) 2015 Michal Dutkiewicz aka Emdek <michal@emdek.pl>
+
 * This program is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
 * the Free Software Foundation, either version 3 of the License, or
@@ -18,8 +19,8 @@
 *
 **************************************************************************/
 
-#ifndef OTTER_CONTENTBLOCKINGLIST_H
-#define OTTER_CONTENTBLOCKINGLIST_H
+#ifndef OTTER_CONTENTBLOCKINGPROFILE_H
+#define OTTER_CONTENTBLOCKINGPROFILE_H
 
 #include "NetworkManager.h"
 
@@ -30,13 +31,25 @@
 namespace Otter
 {
 
-class ContentBlockingList : public QObject
+struct ContentBlockingInformation
+{
+	QString name;
+	QString title;
+	QString path;
+	QDateTime lastUpdate;
+	QUrl updateUrl;
+	int daysToExpire;
+	bool isUpToDate;
+	bool isLoaded;
+
+	ContentBlockingInformation() : daysToExpire(4), isUpToDate(false), isLoaded(false) {}
+};
+
+class ContentBlockingProfile : public QObject
 {
 	Q_OBJECT
 
 public:
-	explicit ContentBlockingList(QObject *parent = NULL);
-
 	enum RuleOption
 	{
 		NoOption = 0,
@@ -62,18 +75,12 @@ public:
 		bool needsDomainCheck;
 	};
 
-	void setEnabled(const bool enabled);
-	void setFile(const QString &path, const QString &name);
-	void setListName(const QString &title);
-	void setConfigListName(const QString &name);
-	QString getFileName() const;
-	QString getListName() const;
-	QString getConfigListName() const;
-	QString getCssRules() const;
-	QDateTime getLastUpdate() const;
-	QMultiHash<QString, QString> getSpecificDomainHidingRules() const;
-	QMultiHash<QString, QString> getHidingRulesExceptions() const;
-	bool isEnabled() const;
+	explicit ContentBlockingProfile(const QString &path, QObject *parent = NULL);
+
+	QString getStyleSheet();
+	ContentBlockingInformation getInformation() const;
+	QMultiHash<QString, QString> getStyleSheetWhiteList();
+	QMultiHash<QString, QString> getStyleSheetBlackList();
 	bool isUrlBlocked(const QNetworkRequest &request, const QUrl &baseUrl);
 
 protected:
@@ -86,13 +93,12 @@ protected:
 		Node() : value(0), rule(NULL) {}
 	};
 
-	void parseRules();
-	void loadRuleFile();
-	void clear();
+	void load(bool onlyHeader = false);
+	void loadRules();
 	void parseRuleLine(QString line);
 	void resolveRuleOptions(ContentBlockingRule *rule, const QNetworkRequest &request, bool &isBlocked);
-	void parseCssRule(const QStringList &line, QMultiHash<QString, QString> &list);
-	void addRule(ContentBlockingRule *rule, const QString ruleString);
+	void parseStyleSheetRule(const QStringList &line, QMultiHash<QString, QString> &list);
+	void addRule(ContentBlockingRule *rule, const QString &ruleString);
 	void deleteNode(Node *node);
 	void downloadUpdate();
 	bool resolveDomainExceptions(const QString &url, const QStringList &ruleList);
@@ -105,22 +111,14 @@ private slots:
 private:
 	Node *m_root;
 	QNetworkReply *m_networkReply;
-	QDateTime m_lastUpdate;
-	QString m_fullFilePath;
-	QString m_fileName;
-	QString m_listName;
-	QString m_configListName;
-	QString m_cssHidingRules;
+	QString m_styleSheet;
 	QString m_currentRule;
 	QUrl m_baseUrl;
-	QUrl m_updateUrl;
-	QMultiHash<QString, QString> m_cssSpecificDomainHidingRules;
-	QMultiHash<QString, QString> m_cssHidingRulesExceptions;
 	QRegularExpression m_domainExpression;
+	ContentBlockingInformation m_information;
 	QStringList m_requestSubdomainList;
-	int m_daysToExpire;
-	bool m_isUpdated;
-	bool m_isEnabled;
+	QMultiHash<QString, QString> m_styleSheetBlackList;
+	QMultiHash<QString, QString> m_styleSheetWhiteList;
 
 	static NetworkManager *m_networkManager;
 
