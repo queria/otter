@@ -130,6 +130,45 @@ void NetworkManager::handleSslErrors(QNetworkReply *reply, const QList<QSslError
 	}
 }
 
+bool NetworkManager::shouldHandleSelfSignedError(QSslError error, QUrl url)
+{
+	return (!url.isEmpty()
+			&& SettingsManager::getValue(QLatin1String("Security/AcceptSelfSignedCerts")).toBool()
+			&& (error.error() == QSslError::SelfSignedCertificate
+				|| error.error() == QSslError::SelfSignedCertificateInChain));
+}
+
+QString NetworkManager::getKnownSelfSignedHash(QUrl url)
+{
+	QStringList known = SettingsManager::getValue(QLatin1String("Security/KnownSelfSigned"), url).toStringList();
+	QString portIdent = QString("%1:").arg(url.port(443));
+
+	for(int i = 0; i < known.count(); ++i)
+	{
+	  if(known.at(i).startsWith(portIdent)) {
+		  return known.at(i).right(known.at(i).length() - portIdent.length());
+	  }
+	}
+	return "";
+}
+
+void NetworkManager::setKnownSelfSignedHash(QUrl url, QString hash)
+{
+	QStringList known = SettingsManager::getValue(QLatin1String("Security/KnownSelfSigned"), url).toStringList();
+	QString portIdent = QString("%1:").arg(url.port(443));
+
+	for(int i = 0; i < known.count(); ++i)
+	{
+		if(known.at(i).startsWith(portIdent)) {
+			known.removeAt(i);
+			break;
+		}
+	}
+	known << (portIdent + hash);
+
+	SettingsManager::setValue(QLatin1String("Security/KnownSelfSigned"), known, url);
+}
+
 CookieJar* NetworkManager::getCookieJar()
 {
 	return m_cookieJar;

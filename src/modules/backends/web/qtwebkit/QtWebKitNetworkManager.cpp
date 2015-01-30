@@ -137,6 +137,28 @@ void QtWebKitNetworkManager::handleSslErrors(QNetworkReply *reply, const QList<Q
 			{
 				errorsToIgnore.append(errors.at(i));
 			}
+			else if (shouldHandleSelfSignedError(errors.at(i), m_widget->getUrl()))
+			{ // if this is self-signed case and we can handle it ...
+				QString oldSelfSignedHash = getKnownSelfSignedHash(m_widget->getUrl());
+				QString newSelfSignedHash = errors.at(i).certificate().digest(QCryptographicHash::Sha1).toHex();
+
+				if (oldSelfSignedHash.isEmpty())
+				{ // first time we see this self-signed page/cert
+					setKnownSelfSignedHash(m_widget->getUrl(), newSelfSignedHash);
+					errorsToIgnore.append(errors.at(i));
+				}
+				else if (oldSelfSignedHash == newSelfSignedHash)
+				{ // same cert as last time
+					errorsToIgnore.append(errors.at(i));
+				}
+				else
+				{ // cert has changed
+					messages.append(tr("Self-signed certificate for %1 has changed!\n\nSHA1 fingerprints:\n old: %2\n new: %3!")
+							.arg(m_widget->getUrl().toString(QUrl::RemoveUserInfo | QUrl::RemovePath))
+							.arg(oldSelfSignedHash)
+							.arg(newSelfSignedHash));
+				}
+			}
 			else
 			{
 				messages.append(errors.at(i).errorString());
@@ -181,15 +203,25 @@ void QtWebKitNetworkManager::handleSslErrors(QNetworkReply *reply, const QList<Q
 		{
 			for (int i = 0; i < errors.count(); ++i)
 			{
-				const QString digest = errors.at(i).certificate().digest().toBase64();
+				if(shouldHandleSelfSignedError(errors.at(i), m_widget->getUrl())) {
+					setKnownSelfSignedHash(
+							m_widget->getUrl(),
+							errors.at(i).certificate().digest(QCryptographicHash::Sha1).toHex());
 
-				if (!ignoredErrors.contains(digest))
-				{
-					ignoredErrors.append(digest);
+				} else {
+					const QString digest = errors.at(i).certificate().digest().toBase64();
+
+					if (!ignoredErrors.contains(digest))
+					{
+						ignoredErrors.append(digest);
+					}
 				}
 			}
 
-			SettingsManager::setValue(QLatin1String("Security/IgnoreSslErrors"), ignoredErrors, m_widget->getUrl());
+			if (!ignoredErrors.isEmpty())
+			{
+				SettingsManager::setValue(QLatin1String("Security/IgnoreSslErrors"), ignoredErrors, m_widget->getUrl());
+			}
 		}
 	}
 }

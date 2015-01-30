@@ -38,6 +38,9 @@ public:
 
 protected:
 	virtual QNetworkReply* createRequest(Operation operation, const QNetworkRequest &request, QIODevice *outgoingData);
+	bool shouldHandleSelfSignedError(QSslError error, QUrl url);
+	QString getKnownSelfSignedHash(QUrl url);
+	void setKnownSelfSignedHash(QUrl url, QString hash);
 
 protected slots:
 	virtual void handleAuthenticationRequired(QNetworkReply *reply, QAuthenticator *authenticator);
